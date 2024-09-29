@@ -1,6 +1,7 @@
 import { db, auth } from '../firebase';
-import { collection, addDoc, query, where, getDocs, orderBy, Timestamp, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs, orderBy, Timestamp, deleteDoc, doc, getDoc, setDoc } from 'firebase/firestore';
 
+// Attendance functions
 export const submitAttendance = async (attendanceData) => {
   try {
     const attendanceRef = collection(db, 'attendance');
@@ -13,6 +14,24 @@ export const submitAttendance = async (attendanceData) => {
     console.error("Error submitting attendance:", error);
     throw error;
   }
+};
+
+export const checkAttendanceExists = async (memberId) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const attendanceRef = collection(db, 'attendance');
+  const q = query(
+    attendanceRef,
+    where('memberId', '==', memberId),
+    where('timestamp', '>=', Timestamp.fromDate(today)),
+    where('timestamp', '<', Timestamp.fromDate(tomorrow))
+  );
+
+  const querySnapshot = await getDocs(q);
+  return !querySnapshot.empty;
 };
 
 export const fetchAttendanceHistory = async (userId, selectedDate) => {
@@ -88,6 +107,7 @@ export const fetchMonthlyStats = async (selectedDate) => {
   }
 };
 
+// Daily report functions
 export const submitDailyReport = async (reportData) => {
   try {
     const reportsRef = collection(db, 'dailyReports');
@@ -153,6 +173,66 @@ export const deleteDailyReport = async (employeeId, level, date) => {
     }
   } catch (error) {
     console.error("Error deleting daily report:", error);
+    throw error;
+  }
+};
+
+// User functions
+export const fetchMembers = async () => {
+  try {
+    const membersRef = collection(db, 'users');
+    const querySnapshot = await getDocs(membersRef);
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })).sort((a, b) => a.memberId.localeCompare(b.memberId));
+  } catch (error) {
+    console.error("Error fetching members:", error);
+    throw error;
+  }
+};
+
+export const fetchUserData = async (userId) => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+    if (userSnap.exists()) {
+      return userSnap.data();
+    } else {
+      throw new Error("User not found");
+    }
+  } catch (error) {
+    console.error("Error fetching user data:", error);
+    throw error;
+  }
+};
+
+export const createUser = async (userData) => {
+  try {
+    const userRef = doc(db, 'users', userData.uid);
+    await setDoc(userRef, userData);
+  } catch (error) {
+    console.error("Error creating user:", error);
+    throw error;
+  }
+};
+
+export const updateUser = async (userId, userData) => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    await setDoc(userRef, userData, { merge: true });
+  } catch (error) {
+    console.error("Error updating user:", error);
+    throw error;
+  }
+};
+
+export const deleteUser = async (userId) => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    await deleteDoc(userRef);
+  } catch (error) {
+    console.error("Error deleting user:", error);
     throw error;
   }
 };

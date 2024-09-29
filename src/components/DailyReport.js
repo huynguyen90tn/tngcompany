@@ -32,13 +32,14 @@ function DailyReport({ user }) {
     level: ''
   });
   const [openOvertimeDialog, setOpenOvertimeDialog] = useState(false);
+  const [error, setError] = useState('');
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prevState => {
       const newState = { ...prevState, [name]: value };
-      if (['workingHours', 'lateHours', 'leaveHours', 'overtimeHours'].includes(name)) {
-        newState.totalHours = Number(newState.workingHours) + Number(newState.lateHours) + Number(newState.leaveHours) + Number(newState.overtimeHours);
+      if (['workingHours', 'overtimeHours'].includes(name)) {
+        newState.totalHours = Number(newState.workingHours) + Number(newState.overtimeHours);
       }
       if (name === 'overtimeHours' && Number(value) > 0) {
         setOpenOvertimeDialog(true);
@@ -49,8 +50,8 @@ function DailyReport({ user }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     if (!validateForm()) {
-      alert('Vui lòng điền đầy đủ thông tin và kiểm tra lại các trường.');
       return;
     }
     try {
@@ -60,7 +61,7 @@ function DailyReport({ user }) {
       fetchReports(selectedDate);
     } catch (error) {
       console.error('Error submitting report:', error);
-      alert('Có lỗi xảy ra khi gửi báo cáo. Vui lòng thử lại.');
+      setError('Có lỗi xảy ra khi gửi báo cáo. Vui lòng thử lại.');
     }
   };
 
@@ -88,28 +89,32 @@ function DailyReport({ user }) {
     const requiredFields = ['name', 'employeeId', 'level', 'workLocation', 'reportLink', 'workDescription'];
     for (let field of requiredFields) {
       if (!formData[field]) {
-        console.log(`Field ${field} is empty`);
+        setError(`Vui lòng điền ${field === 'name' ? 'họ và tên' : field === 'employeeId' ? 'mã số nhân viên' : field === 'level' ? 'cấp độ' : field === 'workLocation' ? 'địa điểm làm việc' : field === 'reportLink' ? 'link báo cáo' : 'mô tả công việc'}.`);
         return false;
       }
     }
     if (formData.permission === 'Chọn câu trả lời bên dưới' && formData.leaveHours > 0) {
-      console.log('Permission not selected');
+      setError('Vui lòng chọn trạng thái xin phép.');
       return false;
     }
     if (formData.permission === 'Đã xin phép' && !formData.leaveApprover && formData.leaveHours > 0) {
-      console.log('Leave approver not provided');
+      setError('Vui lòng điền người duyệt nghỉ phép.');
       return false;
     }
     if (!/^https?:\/\/.+/.test(formData.reportLink)) {
-      console.log('Invalid report link');
+      setError('Link báo cáo không hợp lệ. Vui lòng kiểm tra lại.');
       return false;
     }
     if (!/^[1-9]\d{2}$/.test(formData.employeeId)) {
-      console.log('Invalid employee ID');
+      setError('Mã số nhân viên không hợp lệ. Vui lòng kiểm tra lại.');
       return false;
     }
     if (formData.overtimeHours > 0 && (!formData.overtimeContent || !formData.overtimeApprover)) {
-      console.log('Overtime information incomplete');
+      setError('Vui lòng điền đầy đủ thông tin tăng ca.');
+      return false;
+    }
+    if (Number(formData.workingHours) + Number(formData.lateHours) + Number(formData.leaveHours) !== 8) {
+      setError('Tổng số giờ làm việc, giờ đi muộn và giờ nghỉ phép phải bằng 8 giờ.');
       return false;
     }
     return true;
@@ -121,6 +126,7 @@ function DailyReport({ user }) {
       setReports(fetchedReports.sort((a, b) => a.employeeId.localeCompare(b.employeeId)));
     } catch (error) {
       console.error('Error fetching reports:', error);
+      setError('Có lỗi xảy ra khi lấy dữ liệu báo cáo.');
     }
   };
 
@@ -140,7 +146,7 @@ function DailyReport({ user }) {
       setOpenResetDialog(false);
     } catch (error) {
       console.error('Error resetting report:', error);
-      alert('Có lỗi xảy ra khi xóa báo cáo. Vui lòng thử lại.');
+      setError('Có lỗi xảy ra khi xóa báo cáo. Vui lòng thử lại.');
     }
   };
 
@@ -148,6 +154,7 @@ function DailyReport({ user }) {
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Paper elevation={3} sx={{ p: 3, mt: 3 }}>
         <Typography variant="h5" gutterBottom>Báo Cáo Công Việc Hằng Ngày</Typography>
+        {error && <Typography color="error" sx={{ mb: 2 }}>{error}</Typography>}
         <form onSubmit={handleSubmit}>
           <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
@@ -158,6 +165,7 @@ function DailyReport({ user }) {
                 value={formData.name}
                 onChange={handleInputChange}
                 required
+                placeholder="Ví dụ: Nguyễn Văn A"
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -168,7 +176,7 @@ function DailyReport({ user }) {
                 value={formData.employeeId}
                 onChange={handleInputChange}
                 required
-                inputProps={{ pattern: "[1-9][0-9]{2}" }}
+                placeholder="Ví dụ: 001"
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -194,6 +202,8 @@ function DailyReport({ user }) {
                 name="workingHours"
                 value={formData.workingHours}
                 onChange={handleInputChange}
+                InputProps={{ inputProps: { min: 0, max: 8, step: 0.5 } }}
+                placeholder="Ví dụ: 7.5"
               />
             </Grid>
             <Grid item xs={12} md={3}>
@@ -204,6 +214,8 @@ function DailyReport({ user }) {
                 name="lateHours"
                 value={formData.lateHours}
                 onChange={handleInputChange}
+                InputProps={{ inputProps: { min: 0, max: 8, step: 0.5 } }}
+                placeholder="Ví dụ: 0.5"
               />
             </Grid>
             <Grid item xs={12} md={3}>
@@ -214,6 +226,8 @@ function DailyReport({ user }) {
                 name="leaveHours"
                 value={formData.leaveHours}
                 onChange={handleInputChange}
+                InputProps={{ inputProps: { min: 0, max: 8, step: 0.5 } }}
+                placeholder="Ví dụ: 0"
               />
             </Grid>
             <Grid item xs={12} md={3}>
@@ -224,6 +238,8 @@ function DailyReport({ user }) {
                 name="overtimeHours"
                 value={formData.overtimeHours}
                 onChange={handleInputChange}
+                InputProps={{ inputProps: { min: 0, step: 0.5 } }}
+                placeholder="Ví dụ: 2"
               />
             </Grid>
             {formData.leaveHours > 0 && (
@@ -252,6 +268,7 @@ function DailyReport({ user }) {
                     onChange={handleInputChange}
                     disabled={formData.permission !== 'Đã xin phép'}
                     required={formData.permission === 'Đã xin phép'}
+                    placeholder="Ví dụ: Trưởng phòng A"
                   />
                 </Grid>
               </>
@@ -259,7 +276,7 @@ function DailyReport({ user }) {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Tổng số giờ"
+                label="Tổng số giờ làm việc trong ngày"
                 value={formData.totalHours}
                 InputProps={{
                   readOnly: true,
@@ -288,6 +305,7 @@ function DailyReport({ user }) {
                 value={formData.reportLink}
                 onChange={handleInputChange}
                 required
+                placeholder="Ví dụ: https://docs.google.com/document/d/..."
               />
             </Grid>
             <Grid item xs={12}>
@@ -300,6 +318,7 @@ function DailyReport({ user }) {
                 multiline
                 rows={4}
                 required
+                placeholder="Ví dụ: Hoàn thành báo cáo dự án A, tham gia cuộc họp với khách hàng B..."
               />
             </Grid>
             <Grid item xs={12}>
@@ -326,13 +345,14 @@ function DailyReport({ user }) {
           <Table>
             <TableHead>
               <TableRow>
+                <TableCell>STT</TableCell>
                 <TableCell>Mã số</TableCell>
                 <TableCell>Họ và tên</TableCell>
                 <TableCell>Level</TableCell>
                 <TableCell>Số giờ làm việc</TableCell>
                 <TableCell>Số giờ đi muộn</TableCell>
                 <TableCell>Số giờ xin nghỉ</TableCell>
-                <TableCell>Tổng số giờ</TableCell>
+                <TableCell>Tổng số giờ làm việc</TableCell>
                 <TableCell>Địa điểm làm việc</TableCell>
                 <TableCell>Link báo cáo</TableCell>
                 <TableCell>Mô tả công việc</TableCell>
@@ -342,8 +362,9 @@ function DailyReport({ user }) {
               </TableRow>
             </TableHead>
             <TableBody>
-              {reports.map((report) => (
+              {reports.map((report, index) => (
                 <TableRow key={report.id}>
+                  <TableCell>{index + 1}</TableCell>
                   <TableCell>{report.employeeId}</TableCell>
                   <TableCell>{report.name}</TableCell>
                   <TableCell>{report.level}</TableCell>
@@ -352,7 +373,11 @@ function DailyReport({ user }) {
                   <TableCell>{report.leaveHours}</TableCell>
                   <TableCell>{report.totalHours}</TableCell>
                   <TableCell>{report.workLocation}</TableCell>
-                  <TableCell>{report.reportLink}</TableCell>
+                  <TableCell>
+                    <a href={report.reportLink} target="_blank" rel="noopener noreferrer">
+                      {report.reportLink}
+                    </a>
+                  </TableCell>
                   <TableCell>{report.workDescription}</TableCell>
                   <TableCell>{report.overtimeHours}</TableCell>
                   <TableCell>{report.overtimeContent}</TableCell>
@@ -373,6 +398,7 @@ function DailyReport({ user }) {
             label="Mã số thành viên"
             value={resetData.employeeId}
             onChange={(e) => setResetData({ ...resetData, employeeId: e.target.value })}
+            placeholder="Ví dụ: 001"
           />
           <FormControl fullWidth sx={{ mt: 2 }}>
             <InputLabel>Level</InputLabel>
@@ -404,6 +430,7 @@ function DailyReport({ user }) {
             onChange={handleInputChange}
             multiline
             rows={4}
+            placeholder="Ví dụ: Hoàn thành báo cáo khẩn cho dự án A"
           />
           <TextField
             fullWidth
@@ -412,6 +439,7 @@ function DailyReport({ user }) {
             name="overtimeApprover"
             value={formData.overtimeApprover}
             onChange={handleInputChange}
+            placeholder="Ví dụ: Trưởng phòng B"
           />
         </DialogContent>
         <DialogActions>

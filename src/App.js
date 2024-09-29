@@ -6,11 +6,13 @@ import Container from '@mui/material/Container';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import { auth } from './firebase';
-import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
 import Navigation from './components/Navigation';
 import AttendancePage from './pages/AttendancePage';
 import ReportPage from './pages/ReportPage';
-import Login from './components/Login';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import MemberListPage from './pages/MemberListPage';
 
 const theme = createTheme({
   palette: {
@@ -41,17 +43,7 @@ function App() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setUser(user);
-      } else {
-        signInAnonymously(auth)
-          .then((userCredential) => {
-            setUser(userCredential.user);
-          })
-          .catch((error) => {
-            console.error("Error signing in anonymously:", error);
-          });
-      }
+      setUser(user);
       setLoading(false);
     });
 
@@ -71,11 +63,13 @@ function App() {
             <Typography variant="h4" component="h1" gutterBottom align="center" sx={{ mb: 4, fontWeight: 'bold', color: '#1976d2' }}>
               Hệ thống Quản lý - TNG Company
             </Typography>
-            <Navigation />
+            {user && <Navigation />}
             <Routes>
+              <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/" />} />
+              <Route path="/register" element={!user ? <RegisterPage /> : <Navigate to="/" />} />
               <Route path="/" element={user ? <AttendancePage user={user} /> : <Navigate to="/login" />} />
               <Route path="/report" element={user ? <ReportPage user={user} /> : <Navigate to="/login" />} />
-              <Route path="/login" element={<Login />} />
+              <Route path="/members" element={user ? <MemberListPage /> : <Navigate to="/login" />} />
             </Routes>
           </Box>
         </Container>

@@ -1,15 +1,26 @@
-import React, { useState } from 'react';
-import { TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, Typography } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
+import { submitAttendance, fetchAttendanceHistory, fetchMonthlyStats } from '../services/firebaseService';
 
-function AttendanceForm({ employeeName, employeeId, attendanceLocation, setEmployeeName, setEmployeeId, setAttendanceLocation, onAttendance }) {
+function AttendanceForm({ user }) {
+  const [employeeName, setEmployeeName] = useState('');
+  const [employeeId, setEmployeeId] = useState('');
+  const [attendanceLocation, setAttendanceLocation] = useState('');
   const [openLateDialog, setOpenLateDialog] = useState(false);
   const [lateReason, setLateReason] = useState('');
   const [hasReported, setHasReported] = useState(false);
   const [lateApprover, setLateApprover] = useState('');
   const [deductedHours, setDeductedHours] = useState(0);
   const [showDeductionNotice, setShowDeductionNotice] = useState(false);
+  const [monthlyStats, setMonthlyStats] = useState({});
+  const [todayAttendance, setTodayAttendance] = useState([]);
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    fetchMonthlyStats(new Date()).then(setMonthlyStats);
+    fetchAttendanceHistory(user.uid, new Date()).then(setTodayAttendance);
+  }, [user.uid]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const now = new Date();
     const cutoffTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 9, 5, 0);
@@ -17,18 +28,19 @@ function AttendanceForm({ employeeName, employeeId, attendanceLocation, setEmplo
     if (now > cutoffTime) {
       setOpenLateDialog(true);
     } else {
-      onAttendance({ employeeName, employeeId, attendanceLocation, lateMinutes: 0, deductedHours: 0 });
+      await submitAttendance({ employeeName, employeeId, attendanceLocation, lateMinutes: 0, deductedHours: 0, userId: user.uid });
+      fetchAttendanceHistory(user.uid, new Date()).then(setTodayAttendance);
     }
   };
 
-  const handleLateSubmit = () => {
+  const handleLateSubmit = async () => {
     const now = new Date();
     const cutoffTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 9, 5, 0);
     const lateMinutes = Math.round((now - cutoffTime) / (1000 * 60));
     const calculatedDeductedHours = calculateDeductedHours(lateMinutes, hasReported);
     setDeductedHours(calculatedDeductedHours);
 
-    onAttendance({
+    await submitAttendance({
       employeeName,
       employeeId,
       attendanceLocation,
@@ -36,10 +48,12 @@ function AttendanceForm({ employeeName, employeeId, attendanceLocation, setEmplo
       lateReason,
       lateReport: hasReported ? 'Đã báo cáo' : 'Chưa báo cáo',
       lateApprover: hasReported ? lateApprover : '',
-      deductedHours: calculatedDeductedHours
+      deductedHours: calculatedDeductedHours,
+      userId: user.uid
     });
     setOpenLateDialog(false);
     setShowDeductionNotice(true);
+    fetchAttendanceHistory(user.uid, new Date()).then(setTodayAttendance);
   };
 
   const calculateDeductedHours = (lateMinutes, hasReported) => {
@@ -178,6 +192,62 @@ function AttendanceForm({ employeeName, employeeId, attendanceLocation, setEmplo
           <Button onClick={() => setShowDeductionNotice(false)}>OK</Button>
         </DialogActions>
       </Dialog>
+
+      <Typography variant="h6" sx={{ mt: 4 }}>Tổng số giờ đi muộn trong tháng</Typography>
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Mã số</TableCell>
+              <TableCell>Họ và tên</TableCell>
+              <TableCell>Số lần đi muộn</TableCell>
+              <TableCell>Tổng thời gian đi muộn</TableCell>
+              <TableCell>Tổng số giờ bị trừ</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {Object.entries(monthlyStats).map(([employeeId, stats]) => (
+              <TableRow key={employeeId}>
+                <TableCell>{employeeId}</TableCell>
+                <TableCell>{stats.name}</TableCell>
+                <TableCell>{stats.lateCount}</TableCell>
+                <TableCell>{Math.floor(stats.totalLateMinutes / 60)} giờ {stats.totalLateMinutes % 60} phút</TableCell>
+                <TableCell>{stats.totalDeductedHours}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      <Typography variant="h6" sx={{ mt: 4 }}>Điểm danh hôm nay</Typography>
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Họ và tên</TableCell>
+              <TableCell>Mã số</TableCell>
+              <TableCell>Thời gian</TableCell>
+              <TableCell>Đi muộn</TableCell>
+              <TableCell>Địa điểm</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {todayAttendance.map((record) => (
+              <TableRow key={record.id}>
+                <TableCell>{record.employeeName}</TableCell>
+                <TableCell>{record.employeeId}</TableCell>
+                <TableCell>{record.timestamp.toLocaleString()}</TableCell>
+                <TableCell>
+                  {record.lateMinutes > 0
+                    ? `${Math.floor(record.lateMinutes / 60)} giờ ${record.lateMinutes % 60} phút`
+                    : 'Đúng giờ'}
+                </TableCell>
+                <TableCell>{record.attendanceLocation}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
     </>
   );
 }
