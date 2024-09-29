@@ -326,10 +326,6 @@ function DailyReport({ user }) {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell colSpan={7} align="center">Giờ hành chính</TableCell>
-                <TableCell colSpan={3} align="center">Làm thêm ngoài giờ</TableCell>
-              </TableRow>
-              <TableRow>
                 <TableCell>Mã số</TableCell>
                 <TableCell>Họ và tên</TableCell>
                 <TableCell>Level</TableCell>

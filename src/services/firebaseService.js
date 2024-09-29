@@ -25,7 +25,6 @@ export const fetchAttendanceHistory = async (userId, selectedDate) => {
     const attendanceRef = collection(db, 'attendance');
     const q = query(
       attendanceRef,
-      where('userId', '==', userId),
       where('timestamp', '>=', Timestamp.fromDate(startOfDay)),
       where('timestamp', '<=', Timestamp.fromDate(endOfDay)),
       orderBy('timestamp', 'asc')

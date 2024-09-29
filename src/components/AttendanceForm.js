@@ -93,8 +93,8 @@ function AttendanceForm({ employeeName, employeeId, attendanceLocation, setEmplo
                 label="Địa điểm điểm danh"
                 sx={{ borderRadius: '12px' }}
               >
-                <MenuItem value="Tại Tổng đàn Cái Bang">Tại Tổng đàn Cái Bang</MenuItem>
-                <MenuItem value="Đang điểm danh Online tại nhà">Đang điểm danh Online tại nhà</MenuItem>
+                <MenuItem value="Tại Tổng đàn">Tại Tổng đàn</MenuItem>
+                <MenuItem value="Tại nhà">Tại nhà</MenuItem>
               </Select>
             </FormControl>
           </Grid>
