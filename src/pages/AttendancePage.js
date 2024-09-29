@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Grid, Card, CardContent, Typography, Grow, Fade, Box } from '@mui/material';
+import { Grid, Card, Typography, Grow, Fade, Box } from '@mui/material';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import AttendanceForm from '../components/AttendanceForm';
