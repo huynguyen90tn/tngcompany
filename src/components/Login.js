@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { TextField, Button, Typography, Container, Box, Divider } from '@mui/material';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { auth } from '../firebase';
+import { auth, googleProvider } from '../firebase'; // Import Google Provider từ firebase.js đã cấu hình
 import { Link, useNavigate } from 'react-router-dom';
 
 function Login() {
@@ -12,9 +12,10 @@ function Login() {
 
   const handleEmailLogin = async (e) => {
     e.preventDefault();
+    setError(''); // Reset lại thông báo lỗi
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      navigate('/');
+      navigate('/'); // Điều hướng đến trang chủ sau khi đăng nhập thành công
     } catch (error) {
       console.error("Email Login error:", error);
       setError('Đăng nhập thất bại. Vui lòng kiểm tra lại email và mật khẩu.');
@@ -22,10 +23,9 @@ function Login() {
   };
 
   const handleGoogleLogin = async () => {
-    const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
-      navigate('/');
+      await signInWithPopup(auth, googleProvider); // Sử dụng googleProvider đã cấu hình
+      navigate('/'); // Điều hướng đến trang chủ sau khi đăng nhập thành công
     } catch (error) {
       console.error("Google Sign-In error:", error);
       setError('Đăng nhập bằng Google thất bại. Vui lòng thử lại.');

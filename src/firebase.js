@@ -1,7 +1,8 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
+// Cấu hình Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDe1ot-HmPZCKSK3Lyd3gglKdZOoFPNIRM",
   authDomain: "tngbcngay.firebaseapp.com",
@@ -11,6 +12,11 @@ const firebaseConfig = {
   messagingSenderId: "240580685394",
   appId: "1:240580685394:web:bcdca8966e06b01caef98b"
 };
+
+// Khởi tạo Firebase
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+// Thiết lập Google Authentication Provider
+export const googleProvider = new GoogleAuthProvider();
