@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { TextField, Button, Typography, Container, Box, Divider } from '@mui/material';
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { auth, googleProvider } from '../firebase'; // Import Google Provider từ firebase.js đã cấu hình
+import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth'; // Bỏ 'GoogleAuthProvider'
+import { auth, googleProvider } from '../firebase'; // Sử dụng googleProvider đã khai báo trong firebase.js
 import { Link, useNavigate } from 'react-router-dom';
+
+// Phần còn lại của mã...
+
 
 function Login() {
   const [email, setEmail] = useState('');
